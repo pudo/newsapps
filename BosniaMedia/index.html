@@ -63,6 +63,10 @@
                 layer: 'municipalities',
                 data: series,
                 colors: function(d) {
+                  console.log(d);
+                  if (!d) {
+                    return '#fff';
+                  }
                   return colors.getColor(d); // return color based on data value/object
                 }
               });
