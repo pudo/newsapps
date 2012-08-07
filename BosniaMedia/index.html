@@ -48,9 +48,9 @@
         success: function() {
           var series = {};
           ds.countBy('GeoID').each(function(row) { series[row.GeoID] = row.count; });
-          console.log(series);
+          series['FOOO'] = -4;
           var colors = new chroma.ColorScale({
-                            colors: chroma.brewer.YlGn,
+                            colors: chroma.brewer.OrRd,
                             limits: chroma.limits(series, 'equal', series.length)
                           });
           map.loadStyles('style.css', function() {
