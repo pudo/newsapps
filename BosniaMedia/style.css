@@ -25,4 +25,5 @@ table th, table td {
 
 #map svg path {
   stroke: #666;
+  cursor: pointer;
 }

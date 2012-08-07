@@ -43,6 +43,7 @@
       });
 
       var map = $K.map('#map');
+      var selectedRegion = false;
 
       ds.fetch({
         success: function() {
@@ -63,7 +64,6 @@
                 layer: 'municipalities',
                 data: series,
                 colors: function(d) {
-                  console.log(d);
                   if (!d) {
                     return '#fff';
                   }
@@ -71,23 +71,32 @@
                 }
               });
 
-              map.onLayerEvent('mouseover', function(d) {
+              var showLegend = function(d) {
                 $('#record .station').empty();
                 var rows = ds.where({rows: function(r) { return r.GeoID==d['id-3']; }})
                 rows.each(function(r) {
                   $('#record .Grad').html(r['Grad']);
-                  $('#record .station').append("<li>" + r["Station"] + "</li>");
+                  var link = r['Station'];
+                  if (r['Link']) {
+                    link = "<a href='//" + r["Link"] + "'>"+ link + "</a>";
+                  }
+                  $('#record .station').append("<li>" + link + "</li>");
                 });
                 if (rows.length) $('#record').show();
+              };
+
+              map.onLayerEvent('mouseover', function(d) {
+                if (!selectedRegion) showLegend(d);
               });
 
               map.onLayerEvent('mouseout', function(d) {
-                $('#record').hide();
+                if (!selectedRegion) $('#record').hide();
               });
-              $("#year").change(function(e) {
-                applySeries($(e.currentTarget).val());
+
+              map.onLayerEvent('click', function(d) {
+                selectedRegion = selectedRegion==d['id-3'] ? false : d['id-3'];
+                showLegend(d);
               });
-              $("#year").trigger('change');
             });
           });
         }
