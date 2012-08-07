@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Salaries in Bosnia and Herzigovina</title>
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="bubbletree.css" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <!--[if IE]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script src="https://raw.github.com/okfn/bubbletree/master/lib/jquery.history.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+  <script src="http://kartograph.org/js/raphael.min.js"></script>
+  <script src="http://kartograph.org/js/chroma.min.js"></script>
+  <script src="https://raw.github.com/okfn/bubbletree/master/lib/Tween.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"></script>
+  <script src="https://raw.github.com/okfn/bubbletree/master/lib/vis4.js"></script>
+  <script src="https://raw.github.com/okfn/bubbletree/master/build/bubbletree.min.js"></script>
+  <script src="https://github.com/downloads/misoproject/dataset/miso.ds.deps.min.0.2.1.js"></script>
+</head>
+
+<body id="home">
+
+<div class="container">
+  <h1 class="page-header">Salaries in Bosnia and Herzigovina</h1>
+  <div class="row">
+    <div class="wrapper span7">
+      <div class="bubbletree"></div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    $(function() {
+      BubbleTree.Utils.formatNumber = function(n) { return parseInt(n); };
+      var ds = new Miso.Dataset({
+          importer : Miso.Importers.GoogleSpreadsheet,
+          parser : Miso.Parsers.GoogleSpreadsheet,
+          key : "0AplklDf0nYxWdGdITnZUZ2t4Vy1SY0s1c3B0eGNkRmc",
+          worksheet : "1"
+        });
+      var ds = new Miso.Dataset({
+        url : "data.csv",
+        delimiter : ",",
+      });
+
+      var avg = function(a) {
+        return sumA(a)/a.length;
+      }
+
+      var sumA = function(a) {
+        var sum = 0;
+        for(var i = 0; i < a.length; i++) {
+          sum += a[i];
+        }
+        return sum;
+      }
+      
+      var maxA = function(a) {
+        var max = 0;
+        for(var i = 0; i < a.length; i++) {
+          if (max < a[i]) max = a[i];
+        }
+        return max;
+      }
+
+      var agg = function(a) {
+        return avg(a);
+      }
+
+      ds.fetch({
+        success: function() {
+          var categoryData = {};
+          ds.each(function(row) {
+            cat = row['Category'];
+            if (!categoryData[cat]) {
+              categoryData[cat] = {'label': cat, 'amount': [],
+                'children': [], 'meta': row['MetaCategory']};
+            }
+            categoryData[cat]['amount'].push(row['avg']);
+            categoryData[cat]['children'].push({'label': row['Position'], 'amount': row['avg']});
+          });
+
+          var metaCatData = {};
+          _.each(_.values(categoryData), function(row) {
+            if (!row.label) {
+              return;
+            };
+            var m = row['meta'];
+            row['amount'] = agg(row['amount']);
+            if (!metaCatData[m]) {
+              metaCatData[m] = {'label': m, 'amount': [],
+                'children': []};
+            }
+            metaCatData[m]['amount'].push(row['amount']);
+            metaCatData[m]['children'].push(row);
+          });
+
+          var data = {'amount': [], 'label': 'Jobs', 'children': []};
+          _.each(_.values(metaCatData), function(row, i) {
+            if (!row.label) return;
+            row['color'] = chroma.brewer.Paired[i];
+            row['amount'] = agg(row['amount']);
+            row['famount'] = parseInt(row['amount']);
+            data['amount'].push(row['amount']);
+            data['children'].push(row);
+          });
+          data['amount'] = agg(data['amount']);
+          data['famount'] = avg(data['amount']);
+          
+          console.log(data);
+          new BubbleTree({data: data, container: '.bubbletree'});
+
+        }
+      });
+    });
+  </script>
+</body>
+</html>

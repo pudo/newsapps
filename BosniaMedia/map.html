@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Media in Bosnia and Herzigovina</title>
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <!--[if IE]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script src="http://kartograph.org/js/raphael.min.js"></script>
+  <script src="https://raw.github.com/kartograph/kartograph.js/master/dist/kartograph.js"></script>
+  <script src="http://kartograph.org/js/chroma.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"></script>
+  <script src="jquery.qtip.js"></script>
+  <script src="https://github.com/downloads/misoproject/dataset/miso.ds.deps.min.0.2.1.js"></script>
+</head>
+
+<body id="home">
+
+<div class="container">
+  <h1 class="page-header">Media in Bosnia and Herzigovina</h1>
+  <div class="row">
+  <div id="map" class="span6"></div>
+  <div id="legend" class="span6">
+
+    <div id="record" class="well" >
+      <h3 class="Grad"></h3>
+      <ul class="station"></ul>
+    </div>
+  </div>
+  </div>
+</div>
+
+  <script>
+    $(function() {
+      var ds = new Miso.Dataset({
+        importer : Miso.Importers.GoogleSpreadsheet,
+        parser : Miso.Parsers.GoogleSpreadsheet,
+        key : "0AplklDf0nYxWdEZHRE9vbHVrTzZlOGtfVkhJMUlzbmc",
+        worksheet : "1"
+      });
+
+      var map = $K.map('#map');
+
+      ds.fetch({
+        success: function() {
+          var series = {};
+          ds.countBy('GeoID').each(function(row) { series[row.GeoID] = row.count; });
+          console.log(series);
+          var colors = new chroma.ColorScale({
+                            colors: chroma.brewer.YlGn,
+                            limits: chroma.limits(series, 'equal', series.length)
+                          });
+          map.loadStyles('style.css', function() {
+            map.loadMap('muni.svg', function() {
+              map.addLayer({ id: 'municipalities', key: 'id-3', title: function(d) {
+                return d['name-3'];
+              }});
+
+              map.choropleth({
+                layer: 'municipalities',
+                data: series,
+                colors: function(d) {
+                  return colors.getColor(d); // return color based on data value/object
+                }
+              });
+
+              map.onLayerEvent('mouseover', function(d) {
+                $('#record .station').empty();
+                var rows = ds.where({rows: function(r) { return r.GeoID==d['id-3']; }})
+                rows.each(function(r) {
+                  $('#record .Grad').html(r['Grad']);
+                  $('#record .station').append("<li>" + r["Station"] + "</li>");
+                });
+                if (rows.length) $('#record').show();
+              });
+
+              map.onLayerEvent('mouseout', function(d) {
+                $('#record').hide();
+              });
+              $("#year").change(function(e) {
+                applySeries($(e.currentTarget).val());
+              });
+              $("#year").trigger('change');
+            });
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

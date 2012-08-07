@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Population Development in Bosnia and Herzigovina</title>
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <!--[if IE]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script src="http://kartograph.org/js/raphael.min.js"></script>
+  <script src="https://raw.github.com/kartograph/kartograph.js/master/dist/kartograph.js"></script>
+  <script src="http://kartograph.org/js/chroma.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"></script>
+  <script src="jquery.qtip.js"></script>
+  <script src="https://github.com/downloads/misoproject/dataset/miso.ds.deps.min.0.2.1.js"></script>
+</head>
+
+<body id="home">
+
+<div class="container">
+  <h1 class="page-header">Natural Population Development in Bosnia and Herzigovina</h1>
+  <div class="row">
+  <div id="map" class="span6"></div>
+  <div id="legend" class="span6">
+    <select id="year" class="pull-right">
+      <option value="2010">2010</option>
+      <option value="2009">2009</option>
+      <option value="2008">2008</option>
+      <option value="2007">2007</option>
+      <option value="2006">2006</option>
+      <option value="2005">2005</option>
+    </select>
+
+    <div id="record" class="well" >
+      <h3 class="Grad"></h3>
+      <table id="datatable" class="table table-striped">
+         <tr>
+            <th>Year</th>
+            <th>Population</th>
+            <th>Change</th>
+         </tr>
+         <tr>
+            <td>2010</td>
+            <td class="Pop_2010"></td>
+            <td class="Change_2010"></td>
+         </tr>
+         <tr>
+            <td>2009</td>
+            <td class="Pop_2009"></td>
+            <td class="Change_2009"></td>
+         </tr>
+         <tr>
+            <td>2008</td>
+            <td class="Pop_2008"></td>
+            <td class="Change_2008"></td>
+         </tr>
+         <tr>
+            <td>2007</td>
+            <td class="Pop_2007"></td>
+            <td class="Change_2007"></td>
+         </tr>
+      </table>
+    </div>
+  </div>
+  </div>
+</div>
+
+  <script>
+    $(function() {
+      var ds = new Miso.Dataset({
+        url : "mov.csv",
+        delimiter : ",",
+      });
+
+      var map = $K.map('#map');
+
+      ds.fetch({
+        success: function() {
+          var data = {};
+          ds.each(function(row) {
+            data[row['GeoID']] = row;
+          });
+          var applySeries = function(year) {
+            var series = {};
+            _.each(_.keys(data), function(k) {
+              if (k != 85) {
+                series[k] = 1 + (data[k]['Change_' + year] / data[k]['Pop_2010']);
+              }
+            });
+            console.log(series);
+            var colors = new chroma.ColorScale({
+                              colors: chroma.brewer.RdYlBu,
+                              limits: chroma.limits(series, 'equal', series.length)
+                            });
+            map.choropleth({
+              layer: 'municipalities',
+              data: series,
+              colors: function(d) {
+                console.log(colors.getColor(d).hex());
+                return colors.getColor(d); // return color based on data value/object
+              }
+            });
+          };
+          map.loadStyles('style.css', function() {
+            map.loadMap('muni.svg', function() {
+              map.addLayer({ id: 'municipalities', key: 'id-3', title: function(d) {
+                return d['name-3'];
+              }});
+
+              map.onLayerEvent('mouseover', function(d) {
+                var rec = data[d['id-3']];
+                _.each(_.keys(rec), function(k) {
+                  $('#record .' + k).html(rec[k]);
+                });
+                $('#record').show();
+              });
+
+              map.onLayerEvent('mouseout', function(d) {
+                $('#record').hide();
+              });
+              $("#year").change(function(e) {
+                applySeries($(e.currentTarget).val());
+              });
+              $("#year").trigger('change');
+            });
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
