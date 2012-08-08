@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Earthquakes in Bosnia and Herzigovina</title>
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <!--[if IE]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script src="http://kartograph.org/js/raphael.min.js"></script>
+  <script src="https://raw.github.com/kartograph/kartograph.js/master/dist/kartograph.js"></script>
+  <script src="http://kartograph.org/js/chroma.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.3/underscore-min.js"></script>
+  <script src="jquery.qtip.js"></script>
+  <script src="https://github.com/downloads/misoproject/dataset/miso.ds.deps.min.0.2.1.js"></script>
+</head>
+
+<body id="home">
+  <div id="map"></div>
+  <em>Earthquakes in BiH, 1902-2012. Color indicates aggregated strength of quakes, hover to see individual quakes and their magnitude (Richter scale).</em>
+
+  <script>
+    $(function() {
+      var ds = new Miso.Dataset({
+        importer : Miso.Importers.GoogleSpreadsheet,
+        parser : Miso.Parsers.GoogleSpreadsheet,
+        key : "0AtGimX2VAOYJdEkwcWZ5SnM5RnFFaVg0Q3h6dUVoTUE",
+        worksheet : "1"
+      });
+
+      var map = $K.map('#map');
+      var selectedRegion = false;
+
+      ds.fetch({
+        success: function() {
+          var series = {};
+          ds.each(function(row) {
+            series[row.GeoID] = series[row.GeoID] ? series[row.GeoID] : 0;
+            series[row.GeoID] += row.Magnitude;
+          });
+          console.log(series);
+          series['min'] = -140;
+          var colors = new chroma.ColorScale({
+                            colors: chroma.brewer.YlOrBr,
+                            limits: chroma.limits(series, 'equal', series.length)
+                          });
+          map.loadStyles('style.css', function() {
+            map.loadMap('muni.svg', function() {
+              map.addLayer({ id: 'municipalities', key: 'id-3' });
+
+              map.choropleth({
+                layer: 'municipalities',
+                data: series,
+                colors: function(d) {
+                  return colors.getColor(d); // return color based on data value/object
+                }
+              });
+
+              map.tooltips({
+                content: function(c) {
+                  var quakes = ds.rows(function(r) { return r['GeoID']==c['id-3']; });
+                  quakes.sort(function(a,b) { return b.Year - a.Year; });
+                  var list = "<ul>";
+                  quakes.each(function(q) { list += "<li>" + q.Grad + " (" + q.Year + "): <strong>" + q.Magnitude + "</strong></li>"; });
+                  return "<h3><strong>" + c['name-3'] + "</strong>: " + quakes.length + "</h3>" + list + "</ul>";
+                }
+              });
+            });
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
