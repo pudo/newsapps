@@ -54,20 +54,29 @@
                             colors: chroma.brewer.OrRd,
                             limits: chroma.limits(series, 'equal', series.length)
                           });
-          map.loadStyles('style.css', function() {
+          map.loadCSS('style.css', function() {
             map.loadMap('muni.svg', function() {
-              map.addLayer({ id: 'municipalities', key: 'id-3', title: function(d) {
-                return d['name-3'];
-              }});
-
-              map.choropleth({
-                layer: 'municipalities',
-                data: series,
-                colors: function(d) {
-                  if (!d) {
-                    return '#fff';
+              map.addLayer('municipalities', {
+                title: function(d) {
+                  return d['name-3'];
+                },
+                styles: {
+                  fill: function (d) {
+                    if (!d) {
+                      return '#fff';
+                    }
+                    return colors.getColor(series[d['id-3']]); // return color based on data value/object
                   }
-                  return colors.getColor(d); // return color based on data value/object
+                },
+                mouseover: function (d) {
+                  if (!selectedRegion) showLegend(d);
+                },
+                mouseout: function(d) {
+                   if (!selectedRegion) $('#record').hide();
+                },
+                click: function(d) {
+                  selectedRegion = selectedRegion==d['id-3'] ? false : d['id-3'];
+                  showLegend(d);
                 }
               });
 
@@ -85,18 +94,6 @@
                 if (rows.length) $('#record').show();
               };
 
-              map.onLayerEvent('mouseover', function(d) {
-                if (!selectedRegion) showLegend(d);
-              });
-
-              map.onLayerEvent('mouseout', function(d) {
-                if (!selectedRegion) $('#record').hide();
-              });
-
-              map.onLayerEvent('click', function(d) {
-                selectedRegion = selectedRegion==d['id-3'] ? false : d['id-3'];
-                showLegend(d);
-              });
             });
           });
         }
